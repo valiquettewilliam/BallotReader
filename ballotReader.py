@@ -1,16 +1,12 @@
 
 
-def BallotCount():
-    # Program to read all the lines in a file using readline() function
-    file = open("python.txt", "r")
-    while True:
-        content=file.readline()
-        if not content:
-            break
-        print(content)
-    file.close()
+def BallotCount(filename):
+    with open(filename) as txt_file:
+        for line in txt_file:
+            print(line)
+
 
 
 if __name__ == "__main__":
-    BallotCount()
+    BallotCount("ballotData.txt")
 
