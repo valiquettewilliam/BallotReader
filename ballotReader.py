@@ -6,17 +6,21 @@ def BallotCount(filename):
 
     with open(filename) as txt_file:
         for line in txt_file:
-            vote = line.split()
-            if len(vote) != 2 :
-                # print error of text formating
-                pass
-            if  vote[0] in votersSet:
-                # print fraud detection
-                pass
-            else:
-                votersSet.add(vote[0])
+            # ignore empty lines
+            if line == "" or line.isspace():
+                continue 
 
-            candidateDict[vote[1]] +=1
+            vote = line.split(",")
+            if len(vote) != 2 :
+                print("WARNING: line wrongly formatted data. Data red: " + line)
+                continue
+            if  vote[0] in votersSet:
+                print(f"Oops: there seems to be a frauder. The voter {vote[0]} attempted to vote more than once." )
+                continue
+
+            votersSet.add(vote[0])
+            # maybe check for a casting error here 
+            candidateDict[int(vote[1])] +=1
 
     
     print(candidateDict)
