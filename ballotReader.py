@@ -26,39 +26,61 @@ def BallotCount(filename):
 
     # sort by value in reverse order
     sortedList = sorted(candidateDict.items(), key=operator.itemgetter(1), reverse=True)
-    print(sortedList)
 
-    return [winners[1] for winners in sortedList[:3]]
+    return sortedList[:3]
+
+
+# If we were to read it not like a stream
+class BallotReader:
+    COLUMS_NAMES = ["voderId","candidateId"]
+
+    def __init__(self, ballotFilename):
+        self.filename = ballotFilename
+        self.df = pd.DataFrame()
+
+    def readFile(self):
+        self.df = pd.read_csv( self.filename, names=self.COLUMS_NAMES,on_bad_lines = 'warn')
+
+
+    def getFraudster(self):
+        fraudster =  self.df[self.df.duplicated(subset="voderId")]
+        return fraudster["voderId"].to_list()
+        
+    def removeFraudster(self):
+        self.df = self.df.drop_duplicates(subset="voderId",keep=False)
+
+    def getTop3(self):
+        result = self.df.drop_duplicates(subset="voderId",keep=False)
+        result = result.groupby("candidateId").agg(votes=('voderId', 'count'))
+        result = result.sort_values(by=["votes"], ascending=False)
+        # so the column's title appear aligned
+        result = result.reset_index()
+        return result.head(3)
+
 
 def BallotCountPanda(filename):
-    colnames = {
-        "voderId": "category",
-        "candidateId": "category",
-    }   
+    ballotR = BallotReader(filename)
 
-    df = pd.read_csv( filename, names=colnames,on_bad_lines = 'warn')
+    ballotR.readFile()
+
+    fraudster = ballotR.getFraudster()
+    if fraudster:
+        print("Opps! We seems to have some fraudster. Here are their voterId:")
+        print(' '.join(map(str, fraudster) ))
+        print("All of their votes will be remove from the count.")
+        ballotR.removeFraudster()
     
-    result = df.groupby("candidateId").agg(votes=('voderId', 'count'))
-    
-    result = result.sort_values(by=["votes"], ascending=False)
-    # so the column's title appear aligned
-    result = result.reset_index()
-
-    print(result.to_string())
-
-
-
-
-
-
+    winners = ballotR.getTop3()
+    print("The top 3 candidates are:")
+    print(winners.to_string(index=False))
 
 
 if __name__ == "__main__":
-    BallotCountPanda("ballotData.txt")
+    # BallotCountPanda("ballotData.txt")
 
     winners = BallotCount("ballotData.txt")
     print(f"""The winners are: 
-          First place:{winners[0]}
-          First place:{winners[1]}
-          First place:{winners[2]}""")
+          First place:{winners[0][0]}  with {winners[0][1]} votes.
+          Second place:{winners[1][0]} with {winners[1][1]} votes.
+          Third place:{winners[2][0]}  with {winners[2][1]} votes.  """)
 
