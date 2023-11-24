@@ -1,5 +1,6 @@
 from collections import defaultdict
 import operator
+import pandas as pd
 
 def BallotCount(filename):
     candidateDict = defaultdict(int)
@@ -29,9 +30,32 @@ def BallotCount(filename):
 
     return [winners[1] for winners in sortedList[:3]]
 
+def BallotCountPanda(filename):
+    colnames = {
+        "voderId": "category",
+        "candidateId": "category",
+    }   
+
+    df = pd.read_csv( filename, names=colnames,on_bad_lines = 'warn')
+    
+    result = df.groupby("candidateId").agg(votes=('voderId', 'count'))
+    
+    result = result.sort_values(by=["votes"], ascending=False)
+    # so the column's title appear aligned
+    result = result.reset_index()
+
+    print(result.to_string())
+
+
+
+
+
+
 
 
 if __name__ == "__main__":
+    BallotCountPanda("ballotData.txt")
+
     winners = BallotCount("ballotData.txt")
     print(f"""The winners are: 
           First place:{winners[0]}
