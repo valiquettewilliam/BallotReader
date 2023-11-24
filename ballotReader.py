@@ -1,4 +1,5 @@
 from collections import defaultdict
+import operator
 
 def BallotCount(filename):
     candidateDict = defaultdict(int)
@@ -22,10 +23,18 @@ def BallotCount(filename):
             # maybe check for a casting error here 
             candidateDict[int(vote[1])] +=1
 
-    
-    print(candidateDict)
-    print(votersSet)
+    # sort by value in reverse order
+    sortedList = sorted(candidateDict.items(), key=operator.itemgetter(1), reverse=True)
+    print(sortedList)
+
+    return [winners[1] for winners in sortedList[:3]]
+
+
 
 if __name__ == "__main__":
-    BallotCount("ballotData.txt")
+    winners = BallotCount("ballotData.txt")
+    print(f"""The winners are: 
+          First place:{winners[0]}
+          First place:{winners[1]}
+          First place:{winners[2]}""")
 
