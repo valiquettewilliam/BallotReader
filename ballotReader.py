@@ -2,7 +2,65 @@ from collections import defaultdict
 import operator
 import pandas as pd
 
-def BallotCount(filename):
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#              Read like a constant stream from text file
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+class Candidate:
+    "Candidate contains only the candidate id and their current vote number"
+    def __init__(self, id):
+        self.id = id
+        self.votes = 0
+
+    def __str__(self):
+        return f"Candidate {self.id} with {self.votes} votes"
+
+class BallotCounter:
+    "Use to count the result of a ballot as the vote are registered."
+    def __init__(self):
+        self.candidateList = []
+        self.votersSet = set()
+
+    def addVote(self, votersId,candidateId):
+        """The function add the vote to the correct candidate and reorder the list.
+            It check for fraudster that tried to vote multiple times and ignored 
+            their vote if it is the case
+		Parameters: 
+			votersId (string): votersid. 
+            candidateId (string): candidateId.
+        """
+        if votersId in self.votersSet:
+            print(f"Oops: there seems to be a frauder. The voter {votersId} attempted to vote more than once." )
+            return
+
+        candIdx = -1
+        for index, item in enumerate(self.candidateList):
+            if item.id == candidateId:
+                item.votes += 1
+                candIdx = index
+                break
+
+        if candIdx == -1:
+            # new candidate
+            self.candidateList.append(Candidate(candidateId))
+            return
+
+        while candIdx-1 >= 0:
+            if self.candidateList[candIdx].votes > self.candidateList[candIdx-1].votes:
+                self.swapCandidatePos(candIdx,candIdx-1)
+            else:
+                break
+
+
+    def swapCandidatePos(self,pos1,pos2):
+        self.candidateList[pos1], self.candidateList[pos2] = self.candidateList[pos2], self.candidateList[pos1]
+
+
+    def getWinners(self):
+        return self.candidateList[:3]
+    
+    
+def readBallot(filename):
     """ 
 		The function read from a txt file and return the 3 candidates with the most votes. 
 
@@ -10,16 +68,15 @@ def BallotCount(filename):
 			filename (string): The txt file to read from. 
 		
 		Returns: 
-			list[tuple]: list of lenght 3 that contains tuple as (CandidateID, votes) 
+			list[Candidate]: list of lenght 3 that objects of class Candidate
 	"""
-    candidateDict = defaultdict(int)
-    votersSet= set()
+
     lineNumber = 0
+    bCounter = BallotCounter()
 
     with open(filename) as txt_file:
         for line in txt_file:
             lineNumber+=1
-            # ignore empty lines
             if line == "" or line.isspace():
                 continue 
 
@@ -27,20 +84,11 @@ def BallotCount(filename):
             if len(vote) != 2 :
                 print(f"WARNING: line wrongly formatted data at line {lineNumber}. Data red: {line}")
                 continue
-            if  vote[0] in votersSet:
-                print(f"Oops: there seems to be a frauder. The voter {vote[0]} attempted to vote more than once." )
-                continue
+            # if we wanted to display the new winners after each vote we would put this line
+            # bCounter.getWinners()
+            bCounter.addVote(vote[0].strip(),vote[1].strip())
 
-            votersSet.add(vote[0])
-            try:
-                candidateDict[int(vote[1])] +=1
-            except ValueError:
-                print(f"WARNING: Found vote data which is not a number at line {lineNumber}. Data red: {line}")
-
-    # sort by value in reverse order
-    sortedList = sorted(candidateDict.items(), key=operator.itemgetter(1), reverse=True)
-
-    return sortedList[:3]
+    return bCounter.getWinners()
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -90,15 +138,13 @@ def BallotCountPanda(filename):
     print("The top 3 candidates are:")
     print(winners.to_string(index=False))
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                              Main part
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 if __name__ == "__main__":
     # BallotCountPanda("ballotData.txt")
 
-    help(BallotCount)
-
-    winners = BallotCount("ballotData.txt")
-    print(f"""The winners are: 
-          First place:  {winners[0][0]}  with {winners[0][1]} votes.
-          Second place: {winners[1][0]}  with {winners[1][1]} votes.
-          Third place:  {winners[2][0]}  with {winners[2][1]} votes.  """)
+    winners = readBallot("ballotData.txt")
+    print(*winners, sep="\n")
 
